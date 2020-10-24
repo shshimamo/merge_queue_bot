@@ -25,8 +25,10 @@ provider:
   runtime: nodejs12.x
 
 # you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
+  stage: dev
+  region: ap-northeast-1
+  memorySize: 512
+  timeout: 30
 
 # you can add statements to the Lambda function's IAM Role here
 #  iamRoleStatements:
@@ -49,24 +51,25 @@ provider:
 #    variable1: value1
 
 # you can add packaging information here
-#package:
+package:
 #  include:
 #    - include-me.js
 #    - include-me-dir/**
-#  exclude:
+  exclude:
+    - package-lock.json
 #    - exclude-me.js
 #    - exclude-me-dir/**
 
 functions:
-  hello:
-    handler: handler.hello
+  run:
+    handler: handler.run
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
-#    events:
-#      - http:
-#          path: users/create
-#          method: get
+    events:
+      - httpApi:
+          path: /event-handler
+          method: POST
 #      - websocket: $connect
 #      - s3: ${env:BUCKET}
 #      - schedule: rate(10 minutes)
@@ -97,8 +100,11 @@ functions:
 #            path: /hello
 
 #    Define function environment variables here
-#    environment:
-#      variable2: value2
+    environment:
+      VERIFICATION_TOKEN  : ${ssm:merge_queue_slack_verification_token}
+      BOT_TOKEN           : ${ssm:merge_queue_slack_bot_token}
+      MERGE_QUEUE_EMAIL   : ${ssm:merge_queue_email}
+      MERGE_QUEUE_PASSWORD: ${ssm:merge_queue_password}
 
 # you can add CloudFormation resource templates here
 #resources:
