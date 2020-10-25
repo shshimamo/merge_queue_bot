@@ -1,6 +1,6 @@
 'use strict';
 
-const Slack = require('slack');
+const { WebClient } = require('@slack/web-api');
 const chromium = require('chrome-aws-lambda');
 const puppeteer = require('puppeteer-core');
 
@@ -90,15 +90,9 @@ async function handleMessage(message) {
   await sendSlackMessage(message.channel, msg);
 }
 
-function sendSlackMessage(channel, message) {
-  const params = {
-    token: process.env.BOT_TOKEN,
-    channel: channel,
-    text: message
-
-  };
-
-  return Slack.chat.postMessage(params);
+async function sendSlackMessage(channel, message) {
+  const web = new WebClient(process.env.BOT_TOKEN);
+  return await web.chat.postMessage({ channel: channel, text: message });
 }
 
 function parseMessage(message) {
