@@ -71,28 +71,23 @@ async function handleMessage(message) {
     return;
   }
 
-  const active = await isActive();
+  let msg = '';
   switch (command) {
     case 'stop':
-      if (active) {
-        await sendSlackMessage(message.channel, 'stop called');
-      } else {
-        await sendSlackMessage(message.channel, '既に停止しています');
-      }
+      msg = await stop();
       break;
     case 'start':
-      if (active) {
-        await sendSlackMessage(message.channel, '既に稼働しています');
-      } else {
-        await sendSlackMessage(message.channel, 'start called');
-      }
+      msg = await start();
       break;
     case 'status':
-      await sendSlackMessage(message.channel, active ? '稼働しています' : '停止しています');
+      let page = await newPage();
+      await login(page);
+      msg = (await isActive(page)) ? '稼働しています' : '停止しています';
       break;
     default:
       break;
   }
+  await sendSlackMessage(message.channel, msg);
 }
 
 function sendSlackMessage(channel, message) {
@@ -128,9 +123,7 @@ async function login(page) {
   await page.waitForNavigation({timeout: 60000, waitUntil: "domcontentloaded"});
 }
 
-async function isActive() {
-  let page = await newPage();
-  await login(page);
+async function isActive(page) {
   let text = await page.$eval('.main .repo', item => {
     return item.textContent;
   });
@@ -138,5 +131,41 @@ async function isActive() {
     return true
   } else {
     return false
+  }
+}
+
+async function stop() {
+  let page = await newPage();
+  await login(page);
+
+  if (!(await isActive(page))) {
+    return '既に停止しています';
+  }
+
+  page.click('.main .repo a')
+  await page.waitForNavigation({timeout: 60000, waitUntil: "domcontentloaded"});
+
+  if (await isActive(page)) {
+    return '停止に失敗しました';
+  } else {
+    return '停止しました';
+  }
+}
+
+async function start() {
+  let page = await newPage();
+  await login(page);
+
+  if ((await isActive(page))) {
+    return '既に稼働しています';
+  }
+
+  page.click('.main .repo a')
+  await page.waitForNavigation({timeout: 60000, waitUntil: "domcontentloaded"});
+
+  if (await isActive(page)) {
+    return '稼働しました';
+  } else {
+    return '稼働に失敗しました';
   }
 }
