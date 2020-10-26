@@ -102,7 +102,7 @@ functions:
 
 #    Define function environment variables here
     environment:
-      VERIFICATION_TOKEN  : ${ssm:merge_queue_slack_verification_token}
+      SLACK_SIGNING_SECRET: ${ssm:merge_queue_slack_signing_secret}
       BOT_TOKEN           : ${ssm:merge_queue_slack_bot_token}
       MERGE_QUEUE_EMAIL   : ${ssm:merge_queue_email}
       MERGE_QUEUE_PASSWORD: ${ssm:merge_queue_password}

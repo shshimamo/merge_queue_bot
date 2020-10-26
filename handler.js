@@ -3,11 +3,10 @@
 const { WebClient } = require('@slack/web-api');
 const chromium = require('chrome-aws-lambda');
 const puppeteer = require('puppeteer-core');
+const crypto = require("crypto");
 
 module.exports.run = async ( event ) =>
 {
-  const dataObject = JSON.parse( event.body );
-
   let response = {
     statusCode: 200,
     body      : {},
@@ -15,13 +14,15 @@ module.exports.run = async ( event ) =>
   };
 
   try {
-    verify(dataObject);
+    verifySlackSignature(event);
+
+    const dataObject = JSON.parse(event.body);
 
     // If the Slack retry header is present, ignore the call to avoid triggering the lambda multiple times
     if (!('x-slack-retry-num' in event.headers)) {
       switch (dataObject.type) {
         case 'url_verification':
-          response.body = verifyCall(dataObject);
+          response.body = dataObject.challenge;
           break;
         case 'event_callback':
           await handleMessage(dataObject.event);
@@ -34,6 +35,7 @@ module.exports.run = async ( event ) =>
       }
     }
   } catch (err) {
+    console.log(`Error occurred: ${err}`)
     response.statusCode = 500;
     response.body = JSON.stringify(err);
   } finally {
@@ -41,19 +43,14 @@ module.exports.run = async ( event ) =>
   }
 }
 
-function verify( data )
+function verifySlackSignature(event)
 {
-  if (data.token === process.env.VERIFICATION_TOKEN) {
-    return;
-  } else {
-    throw 'Verification failed';
-  }
-}
+  const sigBaseString = `v0:${event.headers['x-slack-request-timestamp']}:${event.body}`;
+  const hmac = crypto.createHmac('sha256', process.env['SLACK_SIGNING_SECRET']);
+  const expectedSignature = `v0=${hmac.update(sigBaseString).digest('hex')}`
 
-function verifyCall( data )
-{
-  if (data.token === process.env.VERIFICATION_TOKEN) {
-    return data.challenge;
+  if (event.headers['x-slack-signature'] === expectedSignature) {
+    return;
   } else {
     throw 'Verification failed';
   }
